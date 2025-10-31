@@ -270,10 +270,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    document.querySelectorAll('img').forEach(img => {
-        imageObserver.observe(img);
-    });
+document.querySelectorAll('img').forEach(img => {
+    imageObserver.observe(img);
 });
+});
+
+function resolveShareUrl() {
+    const isFileProtocol = window.location.protocol === 'file:';
+    const hasValidOrigin = window.location.origin && window.location.origin !== 'null';
+
+    if (!isFileProtocol && hasValidOrigin) {
+        return window.location.href;
+    }
+
+    const base = document.body ? document.body.dataset.shareBase : '';
+    if (!base) {
+        return window.location.href;
+    }
+
+    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
+    const relativePath = window.location.pathname.replace(/^\//, '') || 'index.html';
+    try {
+        return new URL(relativePath, normalizedBase).toString();
+    } catch (error) {
+        console.error('Paylaşım adresi oluşturulamadı:', error);
+        return normalizedBase;
+    }
+}
 
 // Share functionality
 function shareWebsite() {
@@ -286,18 +309,18 @@ function shareWebsite() {
     } else {
         // Fallback for browsers that don't support Web Share API
         const url = resolveShareUrl();
-        navigator.clipboard.writeText(url).then(() => {
-            showNotification('Link panoya kopyalandı!');
-        }).catch(() => {
-            // Final fallback
-            const textarea = document.createElement('textarea');
-            textarea.value = url;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showNotification('Link panoya kopyalandı!');
-        });
+        const clipboardSupported = navigator.clipboard && typeof navigator.clipboard.writeText === 'function';
+        if (clipboardSupported) {
+            navigator.clipboard.writeText(url)
+                .then(() => {
+                    showNotification('Link panoya kopyalandı!');
+                })
+                .catch(() => {
+                    fallbackCopy(url);
+                });
+        } else {
+            fallbackCopy(url);
+        }
     }
 }
 
@@ -312,7 +335,31 @@ function shareHashtag() {
     } else {
         // Open Twitter/X share dialog
         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-        window.open(twitterUrl, '_blank', 'width=550,height=420');
+        const popup = window.open(twitterUrl, '_blank', 'width=550,height=420');
+        if (!popup) {
+            fallbackCopy(shareUrl);
+        }
+    }
+}
+
+function fallbackCopy(value) {
+    if (!value) {
+        return;
+    }
+
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showNotification('Link panoya kopyalandı!');
+    } catch (error) {
+        console.error('Kopyalama başarısız:', error);
+        window.prompt('Bağlantıyı manuel kopyalayın:', value);
     }
 }
 
