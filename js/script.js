@@ -134,18 +134,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function resolveShareUrl() {
+        const baseAttr = document.body?.dataset.shareBase;
+        const preferredBase = baseAttr ? baseAttr.trim() : '';
+
+        if (preferredBase) {
+            return preferredBase;
+        }
+
         if (window.location.protocol !== 'file:' && window.location.origin && window.location.origin !== 'null') {
             return window.location.href;
         }
 
-        const base = document.body?.dataset.shareBase;
-        if (!base) {
+        const relativePath = window.location.pathname.replace(/^\//, '') || 'index.html';
+
+        try {
+            return new URL(relativePath, window.location.href).toString();
+        } catch (error) {
+            console.error('Paylaşım adresi oluşturulamadı:', error);
             return window.location.href;
         }
-
-        const normalizedBase = base.endsWith('/') ? base : base + '/';
-        const relativePath = window.location.pathname.replace(/^\//, '') || 'index.html';
-        return new URL(relativePath, normalizedBase).toString();
     }
 
     // Simplify CTA boxes that only contain buttons
@@ -276,25 +283,26 @@ document.querySelectorAll('img').forEach(img => {
 });
 
 function resolveShareUrl() {
+    const baseAttr = document.body?.dataset.shareBase;
+    const preferredBase = baseAttr ? baseAttr.trim() : '';
     const isFileProtocol = window.location.protocol === 'file:';
     const hasValidOrigin = window.location.origin && window.location.origin !== 'null';
+
+    if (preferredBase) {
+        return preferredBase;
+    }
 
     if (!isFileProtocol && hasValidOrigin) {
         return window.location.href;
     }
 
-    const base = document.body ? document.body.dataset.shareBase : '';
-    if (!base) {
-        return window.location.href;
-    }
-
-    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
     const relativePath = window.location.pathname.replace(/^\//, '') || 'index.html';
+
     try {
-        return new URL(relativePath, normalizedBase).toString();
+        return new URL(relativePath, window.location.href).toString();
     } catch (error) {
         console.error('Paylaşım adresi oluşturulamadı:', error);
-        return normalizedBase;
+        return window.location.href;
     }
 }
 
