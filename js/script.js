@@ -1,470 +1,199 @@
+/* Android Açık Kalsın: small, dependency-free page script */
+(function () {
+    'use strict';
 
-// Mobile-friendly interactions and animations
+    var HASHTAG = '#AndroidAçıkKalsın';
+    document.documentElement.classList.add('js');
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
+    /* Toast */
+    var toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.body.appendChild(toast);
+    var toastTimer = 0;
 
-    // FAQ Toggle functionality
-    document.querySelectorAll('.faq-question').forEach(question => {
-        question.addEventListener('click', function() {
-            const faqItem = this.parentElement;
-            const answer = faqItem.querySelector('.faq-answer');
-            
-            // Toggle active class
-            faqItem.classList.toggle('active');
-            
-            // Toggle visibility
-            if (faqItem.classList.contains('active')) {
-                answer.style.display = 'block';
-                answer.style.maxHeight = answer.scrollHeight + 'px';
-            } else {
-                answer.style.maxHeight = '0';
-                setTimeout(() => {
-                    answer.style.display = 'none';
-                }, 300);
-            }
-        });
-    });
+    function showToast(message) {
+        /* Clear first so a repeated message is announced again */
+        toast.textContent = '';
+        setTimeout(function () {
+            toast.textContent = message;
+        }, 50);
+        toast.classList.add('is-visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+            toast.classList.remove('is-visible');
+        }, 2500);
+    }
 
-    // Initialize FAQ answers as hidden
-    document.querySelectorAll('.faq-answer').forEach(answer => {
-        answer.style.display = 'none';
-        answer.style.maxHeight = '0';
-        answer.style.transition = 'max-height 0.3s ease';
-    });
-
-    // Scroll animations
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-
-    // Observe elements for animation
-    document.querySelectorAll('.stat-item, .impact-card, .step-card, .point-card, .process-step').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(30px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-    });
-
-    // Enhanced CTA button interactions
-    document.querySelectorAll('.cta-primary, .cta-secondary').forEach(button => {
-        button.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-3px) scale(1.02)';
-        });
-        
-        button.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
-        });
-    });
-
-    // Copy sample complaint text
-    document.querySelectorAll('.copy-button').forEach(button => {
-        button.addEventListener('click', async () => {
-            const targetId = button.dataset.copyTarget;
-            const target = document.getElementById(targetId);
-            if (!target) return;
-
-            const clone = target.cloneNode(true);
-            clone.querySelectorAll('button, h4').forEach(el => el.remove());
-
-            const rawLines = clone.innerText.split('\n');
-            const cleanedLines = [];
-
-            rawLines.forEach(line => {
-                const trimmed = line.trim();
-                if (!trimmed && cleanedLines.at(-1) === '') {
-                    return;
-                }
-                cleanedLines.push(trimmed);
+    /* Clipboard with execCommand fallback */
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).catch(function () {
+                return legacyCopy(text);
             });
+        }
+        return legacyCopy(text);
+    }
 
-            const text = cleanedLines.join('\n').trim();
-
+    function legacyCopy(text) {
+        return new Promise(function (resolve, reject) {
+            var area = document.createElement('textarea');
+            area.value = text;
+            area.setAttribute('readonly', '');
+            area.style.position = 'fixed';
+            area.style.opacity = '0';
+            document.body.appendChild(area);
+            area.select();
+            var ok = false;
             try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(text);
-                } else {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = text;
-                    textarea.style.position = 'fixed';
-                    textarea.style.opacity = '0';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                }
-
-                const original = button.textContent;
-                button.textContent = 'Metin Kopyalandı!';
-                button.disabled = true;
-                setTimeout(() => {
-                    button.textContent = original;
-                    button.disabled = false;
-                }, 2000);
-            } catch (error) {
-                console.error('Metin kopyalanamadı:', error);
-                button.textContent = 'Kopyalama Başarısız';
-                setTimeout(() => {
-                    button.textContent = 'Metni Kopyala';
-                }, 2000);
+                ok = document.execCommand('copy');
+            } catch (e) {
+                ok = false;
             }
+            document.body.removeChild(area);
+            ok ? resolve() : reject(new Error('copy failed'));
         });
-    });
-
-    function resolveShareUrl() {
-        const baseAttr = document.body?.dataset.shareBase;
-        const preferredBase = baseAttr ? baseAttr.trim() : '';
-
-        if (preferredBase) {
-            return preferredBase;
-        }
-
-        if (window.location.protocol !== 'file:' && window.location.origin && window.location.origin !== 'null') {
-            return window.location.href;
-        }
-
-        const relativePath = window.location.pathname.replace(/^\//, '') || 'index.html';
-
-        try {
-            return new URL(relativePath, window.location.href).toString();
-        } catch (error) {
-            console.error('Paylaşım adresi oluşturulamadı:', error);
-            return window.location.href;
-        }
     }
 
-    // Simplify CTA boxes that only contain buttons
-    document.querySelectorAll('.cta-box').forEach(box => {
-        const hasInlineText = Array.from(box.childNodes).some(node => {
-            return node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0;
-        });
-        const hasNonButtonChild = Array.from(box.children).some(child => child.tagName !== 'A');
+    /* Share */
+    function shareUrl() {
+        var base = (document.body.dataset.shareBase || '').trim();
+        return base || window.location.href;
+    }
 
-        if (!hasInlineText && !hasNonButtonChild && box.children.length) {
-            box.classList.add('cta-box--button-only');
+    /* Web Share first; a cancelled sheet is not an error, anything else falls back */
+    function nativeShare(data, fallback) {
+        if (!navigator.share) {
+            fallback();
+            return;
         }
-    });
+        navigator.share(data).catch(function (err) {
+            if (!err || err.name !== 'AbortError') fallback();
+        });
+    }
 
-    // Parallax effect for hero section (desktop only)
-    if (window.innerWidth > 768) {
-        const hero = document.querySelector('.hero');
-        if (hero) {
-            hero.style.backgroundPositionY = '0px';
-            window.addEventListener('scroll', function() {
-                const scrolled = window.pageYOffset;
-                hero.style.backgroundPositionY = `${scrolled * -0.2}px`;
+    function shareWebsite() {
+        var url = shareUrl();
+        nativeShare({ title: 'Android Açık Kalsın', url: url }, function () {
+            copyText(url).then(function () {
+                showToast('Bağlantı kopyalandı');
+            }, function () {
+                window.prompt('Bağlantı:', url);
             });
-        }
+        });
     }
 
-    // Step highlighting on scroll (for guide page)
-    if (document.querySelector('.steps-section')) {
-        const stepItems = document.querySelectorAll('.step-item');
-        const stepObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    // Remove active class from all steps
-                    stepItems.forEach(step => step.classList.remove('active-step'));
-                    // Add active class to current step
-                    entry.target.classList.add('active-step');
-                }
+    function shareHashtag() {
+        var text = HASHTAG + ' ' + shareUrl();
+        if (!navigator.share) {
+            /* noopener hides whether the popup opened, so also copy the text */
+            copyText(text).then(function () {
+                showToast('Metin kopyalandı');
+            }, function () {});
+            var intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+            window.open(intent, '_blank', 'noopener,noreferrer');
+            return;
+        }
+        /* After a rejected share the click activation may be gone; copy instead of a popup */
+        nativeShare({ text: text }, function () {
+            copyText(text).then(function () {
+                showToast('Metin kopyalandı');
+            }, function () {
+                window.prompt('Metin:', text);
             });
-        }, { threshold: 0.5 });
-
-        stepItems.forEach(step => {
-            stepObserver.observe(step);
         });
     }
 
-    // Dynamic counter animation for stats
-    function animateValue(element, start, end, duration, prefix = '', suffix = '') {
-        if (start === end) return;
-        const range = end - start;
-        let current = start;
-        const increment = end > start ? 1 : -1;
-        const stepTime = Math.abs(Math.floor(duration / range));
-        const timer = setInterval(() => {
-            current += increment;
-            element.textContent = `${prefix}${current.toLocaleString('tr-TR')}${suffix}`;
-            if (current == end) {
-                clearInterval(timer);
-                element.textContent = `${prefix}${end.toLocaleString('tr-TR')}${suffix}`;
-            }
-        }, stepTime);
-    }
-
-    // Animate stats when they come into view
-    const statsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !entry.target.dataset.animated) {
-                const number = entry.target;
-                const originalText = number.dataset.originalText || number.textContent.trim();
-                number.dataset.originalText = originalText;
-                const segments = originalText.match(/^(\D*)([\d.,]+)(\D*)$/);
-
-                if (!segments) {
-                    number.dataset.animated = 'true';
-                    number.textContent = originalText;
-                    return;
-                }
-
-                const [, prefix, numericPart, suffix] = segments;
-                const cleanedNumeric = numericPart.replace(/[^\d]/g, '');
-
-                if (!cleanedNumeric) {
-                    number.dataset.animated = 'true';
-                    number.textContent = originalText;
-                    return;
-                }
-
-                animateValue(number, 0, parseInt(cleanedNumeric, 10), 2000, prefix, suffix);
-                number.dataset.animated = 'true';
-            }
-        });
-    }, { threshold: 0.5 });
-
-    document.querySelectorAll('.stat-number').forEach(stat => {
-        statsObserver.observe(stat);
-    });
-
-    // Mobile menu toggle (if needed in future versions)
-    const menuToggle = document.querySelector('.menu-toggle');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    if (menuToggle && navMenu) {
-        menuToggle.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
-            this.classList.toggle('active');
-        });
-    }
-
-    // Form validation helper (for future contact forms)
-    function validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-
-    // Lazy loading for images
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target;
-                img.classList.add('loaded');
-                observer.unobserve(img);
-            }
+    document.querySelectorAll('[data-share]').forEach(function (el) {
+        el.addEventListener('click', function () {
+            el.dataset.share === 'hashtag' ? shareHashtag() : shareWebsite();
         });
     });
 
-document.querySelectorAll('img').forEach(img => {
-    imageObserver.observe(img);
-});
-});
+    /* Answers ship expanded for no-JS readers; the accordion closes them here */
+    document.querySelectorAll('.faq-q').forEach(function (btn) {
+        var panel = document.getElementById(btn.getAttribute('aria-controls'));
+        btn.setAttribute('aria-expanded', 'false');
+        if (panel) panel.hidden = true;
+    });
 
-function resolveShareUrl() {
-    const baseAttr = document.body?.dataset.shareBase;
-    const preferredBase = baseAttr ? baseAttr.trim() : '';
-    const isFileProtocol = window.location.protocol === 'file:';
-    const hasValidOrigin = window.location.origin && window.location.origin !== 'null';
+    /* FAQ accordion */
+    document.querySelectorAll('.faq-q').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var open = btn.getAttribute('aria-expanded') === 'true';
+            var panel = document.getElementById(btn.getAttribute('aria-controls'));
+            btn.setAttribute('aria-expanded', String(!open));
+            if (panel) panel.hidden = open;
+        });
+    });
 
-    if (preferredBase) {
-        return preferredBase;
+    /* Copy the sample complaint as plain text with paragraph breaks */
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var source = document.getElementById(btn.dataset.copy);
+            if (!source) return;
+            var text = Array.prototype.map.call(source.querySelectorAll('p'), function (p) {
+                return p.textContent.trim();
+            }).join('\n\n');
+            copyText(text).then(function () {
+                showToast('Metin kopyalandı');
+            }, function () {
+                /* Clipboard refused: open the box and select it so a long press can copy */
+                var box = source.closest('.sample');
+                if (box) setSampleOpen(box, true);
+                var range = document.createRange();
+                range.selectNodeContents(source);
+                var sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                showToast('Kopyalanamadı');
+            });
+        });
+    });
+
+    /* Expand / collapse the sample; box state, aria and label move together */
+    function setSampleOpen(box, open) {
+        box.classList.toggle('is-open', open);
+        var btn = document.querySelector('[data-expand="' + box.id + '"]');
+        if (!btn) return;
+        btn.setAttribute('aria-expanded', String(open));
+        btn.textContent = open ? btn.dataset.labelOpen : btn.dataset.labelClosed;
     }
 
-    if (!isFileProtocol && hasValidOrigin) {
-        return window.location.href;
-    }
+    document.querySelectorAll('[data-expand]').forEach(function (btn) {
+        var box = document.getElementById(btn.dataset.expand);
+        if (!box) return;
+        btn.dataset.labelClosed = btn.textContent;
+        if (!btn.dataset.labelOpen) btn.dataset.labelOpen = btn.textContent;
+        btn.addEventListener('click', function () {
+            var open = !box.classList.contains('is-open');
+            setSampleOpen(box, open);
+            if (!open) box.scrollIntoView({ block: 'nearest' });
+        });
+    });
 
-    const relativePath = window.location.pathname.replace(/^\//, '') || 'index.html';
-
-    try {
-        return new URL(relativePath, window.location.href).toString();
-    } catch (error) {
-        console.error('Paylaşım adresi oluşturulamadı:', error);
-        return window.location.href;
-    }
-}
-
-// Share functionality
-function shareWebsite() {
-    if (navigator.share) {
-        navigator.share({
-            title: 'Android\'i Açık Tutalım - Türkiye',
-            text: 'Google\'ın Android tekelini durdurmak için Rekabet Kurumu\'na şikayet edelim!',
-            url: resolveShareUrl()
-        }).catch(console.error);
-    } else {
-        // Fallback for browsers that don't support Web Share API
-        const url = resolveShareUrl();
-        const clipboardSupported = navigator.clipboard && typeof navigator.clipboard.writeText === 'function';
-        if (clipboardSupported) {
-            navigator.clipboard.writeText(url)
-                .then(() => {
-                    showNotification('Link panoya kopyalandı!');
-                })
-                .catch(() => {
-                    fallbackCopy(url);
-                });
-        } else {
-            fallbackCopy(url);
-        }
-    }
-}
-
-function shareHashtag() {
-    const shareUrl = resolveShareUrl();
-    const text = '#AndroidıAçıkTutalım - Google\'ın Android tekelini durduralım! Rekabet Kurumu\'na şikayet edelim. ' + shareUrl;
-
-    if (navigator.share) {
-        navigator.share({
-            text: text
-        }).catch(console.error);
-    } else {
-        // Open Twitter/X share dialog
-        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-        const popup = window.open(twitterUrl, '_blank', 'width=550,height=420');
-        if (!popup) {
-            fallbackCopy(shareUrl);
-        }
-    }
-}
-
-function fallbackCopy(value) {
-    if (!value) {
-        return;
-    }
-
-    try {
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showNotification('Link panoya kopyalandı!');
-    } catch (error) {
-        console.error('Kopyalama başarısız:', error);
-        window.prompt('Bağlantıyı manuel kopyalayın:', value);
-    }
-}
-
-// Notification system
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#059669' : '#dc2626'};
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        z-index: 1000;
-        transform: translateX(300px);
-        transition: transform 0.3s ease;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Animate out and remove
-    setTimeout(() => {
-        notification.style.transform = 'translateX(300px)';
-        setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
-}
-
-// Performance optimization: Debounce scroll events
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Apply debouncing to scroll-heavy functions
-const debouncedScroll = debounce((e) => {
-    // Any scroll-based animations or calculations
-}, 16); // ~60fps
-
-window.addEventListener('scroll', debouncedScroll);
-
-// Error handling for missing elements
-window.addEventListener('error', function(e) {
-    console.warn('Non-critical error:', e.error);
-    // Don't show errors to users for missing non-critical elements
-});
-
-// Accessibility improvements
-document.addEventListener('keydown', function(e) {
-    // Allow escape key to close any open modals or menus
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.faq-item.active').forEach(item => {
-            item.querySelector('.faq-question').click();
+    /* Lightbox for guide screenshots; links still work without it */
+    var lightbox = document.getElementById('lightbox');
+    if (lightbox && typeof lightbox.showModal === 'function') {
+        var lightboxImg = lightbox.querySelector('img');
+        document.querySelectorAll('[data-lightbox]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                var img = link.querySelector('img');
+                lightboxImg.src = link.href;
+                lightboxImg.alt = img ? img.alt : '';
+                lightbox.showModal();
+            });
+        });
+        lightbox.querySelector('[data-lightbox-close]').addEventListener('click', function () {
+            lightbox.close();
+        });
+        lightbox.addEventListener('click', function (event) {
+            if (event.target === lightbox) lightbox.close();
+        });
+        lightbox.addEventListener('close', function () {
+            lightboxImg.removeAttribute('src');
         });
     }
-    
-    // Allow enter key to activate clickable elements
-    if (e.key === 'Enter' && e.target.classList.contains('faq-question')) {
-        e.target.click();
-    }
-});
-
-// Focus management for accessibility
-document.querySelectorAll('.cta-primary, .cta-secondary, .step-cta, .share-button').forEach(button => {
-    button.addEventListener('focus', function() {
-        this.style.outline = '2px solid #2563eb';
-        this.style.outlineOffset = '2px';
-    });
-    
-    button.addEventListener('blur', function() {
-        this.style.outline = 'none';
-    });
-});
-
-// Print optimization
-window.addEventListener('beforeprint', function() {
-    // Expand all FAQ items before printing
-    document.querySelectorAll('.faq-question').forEach(question => {
-        if (!question.parentElement.classList.contains('active')) {
-            question.click();
-        }
-    });
-});
+})();

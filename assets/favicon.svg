@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#111827"/>
-  <text x="32" y="43" font-size="36" text-anchor="middle">⚖️</text>
+  <rect width="64" height="64" rx="14" fill="#0f6e3f"/>
+  <!-- Open padlock -->
+  <rect x="17" y="30" width="30" height="22" rx="4" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <path d="M24 30v-8a8 8 0 0 1 16 0" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" transform="translate(5 0) rotate(-20 32 22)"/>
+  <circle cx="32" cy="41" r="3" fill="#ffffff"/>
 </svg>

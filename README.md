@@ -1,12 +1,12 @@
-# Android'i Açık Tutalım
+# Android Açık Kalsın
 
-Bu proje, Google'ın Android uygulama ekosistemini merkezi bir kayıt sistemine bağlama planına karşı farkındalık yaratmak ve Türkiye'deki kullanıcıları/geliştiricileri Rekabet Kurumu'na şikayet etmeye teşvik etmek için hazırlanmış statik bir kampanya sitesidir.
+Bu proje, Google'ın Android Geliştirici Doğrulama Programı'na karşı farkındalık yaratmak ve Türkiye'deki kullanıcıları/geliştiricileri Rekabet Kurumu'na şikayet etmeye teşvik etmek için hazırlanmış statik bir kampanya sitesidir.
 
 ## İçerik
-- `index.html`: Kampanyanın ana sayfası. Sorunun ne olduğunu, Türkiye'ye etkilerini ve harekete geçme çağrılarını anlatır.
+- `index.html`: Ne değiştiğini, takvimi ve SSS'yi anlatan ana sayfa.
 - `sikayet-rehberi.html`: Rekabet Kurumu'na çevrimiçi şikayet gönderimi için adım adım Türkçe rehber.
-- `css/style.css`: Site görünümü ve karanlık tema ayarları.
-- `js/script.js`: Animasyonlar, sayaçlar, paylaşım/kopyalama butonları gibi etkileşimler.
+- `css/style.css`: Site görünümü.
+- `js/script.js`: SSS, örnek metni kopyalama, paylaşım ve ekran görüntüsü önizlemesi.
 
 ## Geliştirme
 Projeyi yerelde görüntülemek için bir HTTP sunucusu ile açmanız önerilir:
